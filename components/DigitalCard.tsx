@@ -46,69 +46,156 @@ export const DigitalCard: React.FC<DigitalCardProps> = ({ data }) => {
 
   // --- Capture Helper ---
   const captureCardFace = async (): Promise<HTMLCanvasElement | null> => {
-    const targetRef = isFlipped ? backCardRef : frontCardRef;
-    if (!targetRef.current) return null;
-
-    const originalNode = targetRef.current;
-    const clone = originalNode.cloneNode(true) as HTMLElement;
-
-    // Reset styles on clone for flat rendering
-    clone.style.transform = 'none';
-    clone.style.position = 'absolute';
-    clone.style.left = '-9999px';
-    clone.style.top = '0';
-    clone.style.width = `${originalNode.offsetWidth}px`;
-    clone.style.height = `${originalNode.offsetHeight}px`;
-    clone.classList.remove('rotate-y-180', 'backface-hidden', 'absolute', 'shadow-xl', 'rounded-xl');
-    clone.classList.add('rounded-none'); // Ensure sharp corners for capture if needed, or keep rounded
+    // We capture specific refs regardless of current flip state to ensure we get what we need
+    // However, if the element is hidden via 'backface-hidden', html2canvas might have issues.
+    // Ideally, we clone the element and render it off-screen.
     
-    document.body.appendChild(clone);
+    // Determine which element to capture based on what triggered this. 
+    // But for "JPEG" download, we want BOTH.
+    // Let's make a generic capturer that captures a specific node.
+    return null; // Placeholder, logic moved inside specific handlers or updated below
+  };
 
-    try {
-      const canvas = await html2canvas(clone, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: null,
-        logging: false
-      });
-      document.body.removeChild(clone);
-      return canvas;
-    } catch (error) {
-      console.error("Error capturing card:", error);
-      document.body.removeChild(clone);
-      return null;
-    }
+  const captureElement = async (element: HTMLElement): Promise<HTMLCanvasElement | null> => {
+      if (!element) return null;
+
+      const clone = element.cloneNode(true) as HTMLElement;
+      
+      // Reset styles on clone for flat rendering
+      clone.style.transform = 'none';
+      clone.style.position = 'fixed'; // Use fixed to ensure it's in viewport if needed, or absolute
+      clone.style.left = '-9999px';
+      clone.style.top = '0';
+      clone.style.width = `${element.offsetWidth}px`;
+      clone.style.height = `${element.offsetHeight}px`;
+      clone.classList.remove('rotate-y-180', 'backface-hidden', 'absolute', 'shadow-xl', 'rounded-xl', 'transition-all', 'duration-700', 'transform-style-3d');
+      clone.classList.add('rounded-none'); 
+      
+      // Hide UI elements marked with 'export-hide'
+      const uiElements = clone.querySelectorAll('.export-hide');
+      uiElements.forEach(el => (el as HTMLElement).style.display = 'none');
+
+      document.body.appendChild(clone);
+
+      try {
+        const canvas = await html2canvas(clone, {
+          scale: 3, // Higher scale for better quality
+          useCORS: true,
+          backgroundColor: null,
+          logging: false
+        });
+        document.body.removeChild(clone);
+        return canvas;
+      } catch (error) {
+        console.error("Error capturing card:", error);
+        document.body.removeChild(clone);
+        return null;
+      }
   };
 
   // --- Share Functionality ---
+  
   const handleDownloadJPEG = async () => {
-    const canvas = await captureCardFace();
-    if (canvas) {
-      const image = canvas.toDataURL("image/jpeg", 0.9);
-      const link = document.createElement('a');
-      link.href = image;
-      link.download = `${data.name.replace(/\s+/g, '_')}_Card_${isFlipped ? 'Back' : 'Front'}.jpg`;
-      link.click();
+    if (!frontCardRef.current || !backCardRef.current) return;
+
+    // Capture both faces
+    const frontCanvas = await captureElement(frontCardRef.current);
+    const backCanvas = await captureElement(backCardRef.current);
+
+    if (frontCanvas && backCanvas) {
+        const width = Math.max(frontCanvas.width, backCanvas.width);
+        const height = frontCanvas.height + backCanvas.height + 40; // 40px gap
+
+        const combinedCanvas = document.createElement('canvas');
+        combinedCanvas.width = width;
+        combinedCanvas.height = height;
+        const ctx = combinedCanvas.getContext('2d');
+
+        if (ctx) {
+            // Fill white background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw Front
+            ctx.drawImage(frontCanvas, 0, 0);
+            
+            // Draw Back
+            ctx.drawImage(backCanvas, 0, frontCanvas.height + 40);
+
+            const image = combinedCanvas.toDataURL("image/jpeg", 0.9);
+            const link = document.createElement('a');
+            link.href = image;
+            link.download = `${data.name.replace(/\s+/g, '_')}_DigitalCard.jpg`;
+            link.click();
+        }
     }
   };
 
   const handleDownloadPDF = async () => {
-    const canvas = await captureCardFace();
-    if (canvas) {
-      const imgData = canvas.toDataURL('image/jpeg', 1.0);
-      const { jsPDF } = jspdf;
-      const pdf = new jsPDF({
-        orientation: 'landscape',
-        unit: 'mm',
-        format: [90, 55] 
-      });
+     if (!frontCardRef.current || !backCardRef.current) return;
 
-      pdf.addImage(imgData, 'JPEG', 0, 0, 90, 55);
-      pdf.save(`${data.name.replace(/\s+/g, '_')}_Card.pdf`);
+     const frontCanvas = await captureElement(frontCardRef.current);
+     const backCanvas = await captureElement(backCardRef.current);
+
+     if (frontCanvas && backCanvas) {
+        const { jsPDF } = jspdf;
+        // Standard business card size approx 90mm x 55mm
+        // We create a PDF with 2 pages
+        const pdf = new jsPDF({
+            orientation: 'landscape',
+            unit: 'mm',
+            format: [90, 55] 
+        });
+
+        // Add Front Page
+        const frontImgData = frontCanvas.toDataURL('image/jpeg', 1.0);
+        pdf.addImage(frontImgData, 'JPEG', 0, 0, 90, 55);
+
+        // Add Back Page
+        pdf.addPage();
+        const backImgData = backCanvas.toDataURL('image/jpeg', 1.0);
+        pdf.addImage(backImgData, 'JPEG', 0, 0, 90, 55);
+
+        pdf.save(`${data.name.replace(/\s+/g, '_')}_DigitalCard.pdf`);
+     }
+  };
+
+  const getBase64Image = async (url: string): Promise<string> => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      console.warn("Could not convert image to base64, using original URL", e);
+      return url;
     }
   };
 
-  const handleDownloadHTML = () => {
+  const handleDownloadHTML = async () => {
+    const logoBase64 = await getBase64Image(data.logoUrl);
+
+    // Raw SVG Strings for the HTML template
+    const svgs = {
+        phone: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>`,
+        mail: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path></svg>`,
+        inbox: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>`,
+        globe: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>`,
+        linkedin: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path><rect width="4" height="12" x="2" y="9"></rect><circle cx="4" cy="4" r="2"></circle></svg>`,
+        github: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"></path><path d="M9 18c-4.51 2-5-2-7-2"></path></svg>`,
+        mapPin: `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>`,
+        flip: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 21 5-5-5-5"></path><path d="M21 16H3"></path><path d="m8 3-5 5 5 5"></path><path d="M3 8h18"></path></svg>`,
+        qr: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="5" height="5" x="3" y="3" rx="1"></rect><rect width="5" height="5" x="14" y="3" rx="1"></rect><rect width="5" height="5" x="14" y="14" rx="1"></rect><rect width="5" height="5" x="3" y="14" rx="1"></rect><path d="M7 17h.01"></path><path d="M17 17h.01"></path><path d="M7 7h.01"></path><path d="M17 7h.01"></path></svg>`
+    };
+
+    const contactItemClass = "flex items-center space-x-2 group";
+    const iconContainerClass = "p-1 bg-white/20 rounded-full group-hover:bg-white/30 transition-colors flex-shrink-0 flex items-center justify-center text-white";
+    
+    // Construct Interactive HTML
     const htmlContent = `<!DOCTYPE html>
 <html lang="id">
 <head>
@@ -117,45 +204,95 @@ export const DigitalCard: React.FC<DigitalCardProps> = ({ data }) => {
     <title>${data.name} - Digital Card</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>body{font-family:'Inter',sans-serif;}</style>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; }
+        .backface-hidden { backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+        .flip-card-inner { transition: transform 0.6s; }
+        .flipped { transform: rotateY(180deg); }
+    </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-    <div class="max-w-md w-full bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200">
-        <div class="p-6 text-center border-b border-gray-100" style="background-color: ${data.frontBgColor || '#ffffff'}">
-            <div class="w-32 h-32 mx-auto mb-4 flex items-center justify-center">
-                 <img src="${data.logoUrl}" alt="Logo" class="max-w-full max-h-full object-contain">
+<body class="bg-gray-100 flex flex-col items-center justify-center min-h-screen p-4">
+    <div class="perspective-1000 w-full max-w-md cursor-pointer group" onclick="this.querySelector('.flip-card-inner').classList.toggle('flipped')">
+        <div class="flip-card-inner relative w-full aspect-[1.75/1] transform-style-3d shadow-2xl rounded-xl">
+            
+            <!-- Front Face -->
+            <div class="absolute w-full h-full backface-hidden rounded-xl overflow-hidden border border-gray-200 flex flex-col items-center justify-center p-6 text-center z-10 bg-white" style="background-color: ${data.frontBgColor || '#ffffff'}">
+                <div class="absolute top-0 left-0 w-full h-2 bg-[#002f6c]"></div>
+                <div class="flex-grow flex flex-col items-center justify-center space-y-4">
+                    <div class="w-48 h-auto mb-2 relative flex items-center justify-center">
+                        <img src="${logoBase64}" alt="Logo" class="object-contain max-w-full max-h-24">
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 tracking-tight">${data.name}</h2>
+                        <p class="text-[#002f6c] font-medium uppercase text-sm tracking-widest mt-1">${data.title}</p>
+                    </div>
+                </div>
+                <div class="absolute bottom-4 right-4 text-gray-400 animate-pulse">
+                   ${svgs.flip}
+                </div>
+                <div class="absolute bottom-0 right-0 w-16 h-16 bg-blue-50 rounded-tl-full -z-10"></div>
             </div>
-            <h1 class="text-2xl font-bold text-gray-800">${data.name}</h1>
-            <p class="text-blue-800 font-medium uppercase tracking-wider text-sm mt-1">${data.title}</p>
-            <p class="text-gray-500 text-xs mt-2">${data.company}</p>
+
+            <!-- Back Face -->
+            <div class="absolute w-full h-full backface-hidden rotate-y-180 rounded-xl overflow-hidden text-white p-5 flex flex-col shadow-xl" style="background-color: ${data.backBgColor || '#546E7A'}">
+                <div class="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white to-transparent pointer-events-none"></div>
+                
+                <div class="flex justify-between items-center z-10 mb-3 shrink-0">
+                    <h3 class="text-base font-bold">${data.company}</h3>
+                    <div class="bg-white/10 p-1.5 rounded-lg backdrop-blur-sm text-white">
+                        ${svgs.qr}
+                    </div>
+                </div>
+
+                <div class="flex flex-col z-10 gap-1.5 flex-grow justify-center text-xs">
+                    <div class="${contactItemClass}">
+                        <div class="${iconContainerClass}">${svgs.phone}</div>
+                        <span class="font-light tracking-wide truncate">${data.phone}</span>
+                    </div>
+                    <div class="${contactItemClass}">
+                        <div class="${iconContainerClass}">${svgs.mail}</div>
+                        <span class="font-light tracking-wide truncate">${data.email}</span>
+                    </div>
+                    ${data.generalEmail ? `
+                    <div class="${contactItemClass}">
+                        <div class="${iconContainerClass}">${svgs.inbox}</div>
+                        <span class="font-light tracking-wide truncate opacity-90">${data.generalEmail}</span>
+                    </div>` : ''}
+                    <div class="${contactItemClass}">
+                        <div class="${iconContainerClass}">${svgs.globe}</div>
+                        <span class="font-light tracking-wide truncate">${data.website}</span>
+                    </div>
+                    ${data.linkedin ? `
+                    <div class="${contactItemClass}">
+                        <div class="${iconContainerClass}">${svgs.linkedin}</div>
+                        <span class="font-light tracking-wide truncate">${data.linkedin}</span>
+                    </div>` : ''}
+                    ${data.github ? `
+                    <div class="${contactItemClass}">
+                        <div class="${iconContainerClass}">${svgs.github}</div>
+                        <span class="font-light tracking-wide truncate">${data.github}</span>
+                    </div>` : ''}
+                    <div class="flex items-start space-x-2 group">
+                        <div class="${iconContainerClass} mt-0.5">${svgs.mapPin}</div>
+                        <span class="font-light leading-snug text-[10px] opacity-90 line-clamp-2">${data.address}</span>
+                    </div>
+                </div>
+
+                <div class="mt-auto pt-2 border-t border-white/20 z-10">
+                   <p class="text-[9px] italic opacity-90 leading-relaxed bg-black/20 p-1.5 rounded-lg border-l-2 border-blue-300">
+                     "${bio || 'Profesional teknologi berdedikasi.'}"
+                   </p>
+                </div>
+            </div>
+
         </div>
-        <div class="p-6 text-white space-y-3" style="background-color: ${data.backBgColor || '#546E7A'}">
-            <div class="flex items-center space-x-3">
-                <span class="font-bold w-20 text-xs opacity-75">Phone</span>
-                <span class="text-sm">${data.phone}</span>
-            </div>
-            <div class="flex items-center space-x-3">
-                <span class="font-bold w-20 text-xs opacity-75">Email</span>
-                <span class="text-sm">${data.email}</span>
-            </div>
-            ${data.generalEmail ? `
-            <div class="flex items-center space-x-3">
-                <span class="font-bold w-20 text-xs opacity-75">Info</span>
-                <span class="text-sm">${data.generalEmail}</span>
-            </div>` : ''}
-            <div class="flex items-center space-x-3">
-                <span class="font-bold w-20 text-xs opacity-75">Website</span>
-                <span class="text-sm">${data.website}</span>
-            </div>
-            <div class="flex items-start space-x-3">
-                <span class="font-bold w-20 text-xs opacity-75 mt-1">Address</span>
-                <span class="text-sm">${data.address}</span>
-            </div>
-            ${bio ? `<div class="mt-4 pt-3 border-t border-white/20 text-xs italic opacity-90">"${bio}"</div>` : ''}
-        </div>
-        <div class="p-4 bg-gray-50 text-center text-xs text-gray-400">
-            Generated via Seraphim Digital Card
-        </div>
+    </div>
+    <div class="mt-8 text-center text-gray-400 text-xs">
+        <p>Klik kartu untuk membalik (Depan / Belakang)</p>
+        <p class="mt-2">Generated via Seraphim Digital Card</p>
     </div>
 </body>
 </html>`;
@@ -164,7 +301,7 @@ export const DigitalCard: React.FC<DigitalCardProps> = ({ data }) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${data.name.replace(/\s+/g, '_')}_Card.html`;
+    link.download = `${data.name.replace(/\s+/g, '_')}_InteractiveCard.html`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -292,7 +429,7 @@ END:VCARD`;
               <h3 className="text-base font-bold">{data.company}</h3>
               <button 
                 onClick={toggleViewMode}
-                className="mt-1 flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-[10px] font-medium text-blue-50"
+                className="mt-1 flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-[10px] font-medium text-blue-50 export-hide"
               >
                 {isCompact ? <Maximize2 size={10} /> : <Minimize2 size={10} />}
                 <span>{isCompact ? "Mode Detail" : "Mode Ringkas"}</span>
@@ -353,7 +490,7 @@ END:VCARD`;
           {!isCompact && (
             <div className="mt-auto pt-2 border-t border-white/20 z-10">
                {!bio ? (
-                  <div className="relative group w-fit">
+                  <div className="relative group w-fit export-hide">
                       <button 
                         onClick={handleGenerateBio}
                         disabled={isLoadingBio}

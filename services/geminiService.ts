@@ -4,7 +4,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateProfessionalBio = async (name: string, title: string, company: string): Promise<string> => {
   try {
-    const model = 'gemini-2.5-flash';
+    const model = 'gemini-2.5-flash-lite';
     const prompt = `
       Buatkan deskripsi profesional singkat (maksimal 2 kalimat) dalam Bahasa Indonesia untuk kartu nama digital.
       Nama: ${name}

@@ -1,5 +1,7 @@
 {
   "name": "Seraphim Digital Card",
   "description": "Kartu nama bisnis digital interaktif untuk PT Seraphim Digital Technology dengan integrasi AI untuk profil profesional.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "camera"
+  ]
 }

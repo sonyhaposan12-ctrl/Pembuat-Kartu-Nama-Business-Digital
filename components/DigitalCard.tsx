@@ -11,6 +11,10 @@ interface DigitalCardProps {
   data: CardData;
 }
 
+// Embedded Audio Assets (Base64) - Short & Optimized
+const flipSound = "data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBIAAAABAAEAQB8AAEAfAAABAAgAAABmYWN0BAAAAAAAAABkYXRhAAAAAA=="; // Placeholder - In real app, put a valid tiny base64 wav
+const clickSound = "data:audio/wav;base64,UklGRjIAAABXQVZFZm10IBIAAAABAAEAQB8AAEAfAAABAAgAAABmYWN0BAAAAAAAAABkYXRhAAAAAA=="; // Placeholder
+
 export const DigitalCard: React.FC<DigitalCardProps> = ({ data }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [bio, setBio] = useState<string>("");
@@ -28,7 +32,16 @@ export const DigitalCard: React.FC<DigitalCardProps> = ({ data }) => {
   const frontCardRef = useRef<HTMLDivElement>(null);
   const backCardRef = useRef<HTMLDivElement>(null);
 
+  // Audio Helper
+  const playSound = (src: string) => {
+    // Basic implementation - in production use real Base64 audio strings
+    // const audio = new Audio(src);
+    // audio.volume = 0.2;
+    // audio.play().catch(e => console.log('Audio play failed', e));
+  };
+
   const handleFlip = () => {
+    playSound(flipSound);
     setIsFlipped(!isFlipped);
   };
 
@@ -326,6 +339,7 @@ END:VCARD`;
   const shareUrl = window.location.href;
 
   const handleShareLink = async () => {
+    playSound(clickSound);
     const shareData = {
       title: `${data.name} - Digital Business Card`,
       text: shareText,
@@ -350,6 +364,7 @@ END:VCARD`;
   };
 
   const handleWhatsAppShare = () => {
+    playSound(clickSound);
     // Richer message format for better engagement
     const message = `*Kartu Nama Digital*\n\nNama: ${data.name}\nPosisi: ${data.title}\nPerusahaan: ${data.company}\n\nLihat profil lengkap dan simpan kontak saya di sini:\n${shareUrl}`;
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
@@ -357,6 +372,7 @@ END:VCARD`;
   };
 
   const handleTwitterShare = () => {
+    playSound(clickSound);
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
@@ -377,7 +393,7 @@ END:VCARD`;
   const downloadTextClass = "text-xs font-medium text-gray-700";
 
   return (
-    <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto p-4 perspective-1000">
+    <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto p-2 sm:p-4 perspective-1000">
       
       {/* Hover Wrapper */}
       <div className="w-full aspect-[1.75/1] transition-transform duration-300 hover:scale-[1.02] transform-style-3d">
@@ -389,51 +405,51 @@ END:VCARD`;
           {/* Front Face */}
           <div 
             ref={frontCardRef}
-            className="absolute w-full h-full backface-hidden rounded-xl overflow-hidden border border-gray-200 flex flex-col items-center justify-center p-6 text-center z-10"
+            className="absolute w-full h-full backface-hidden rounded-xl overflow-hidden border border-gray-200 flex flex-col items-center justify-center p-4 sm:p-6 text-center z-10"
             style={{ backgroundColor: data.frontBgColor || '#ffffff' }}
           >
-            <div className="absolute top-0 left-0 w-full h-2 bg-[#002f6c]"></div>
+            <div className="absolute top-0 left-0 w-full h-1.5 sm:h-2 bg-[#002f6c]"></div>
             
-            <div className="flex-grow flex flex-col items-center justify-center space-y-4">
-              <div className="w-48 h-auto mb-2 relative flex items-center justify-center">
+            <div className="flex-grow flex flex-col items-center justify-center space-y-3 sm:space-y-4">
+              <div className="w-40 sm:w-48 h-auto mb-1 sm:mb-2 relative flex items-center justify-center">
                   <img 
                     src={data.logoUrl} 
                     alt="Company Logo" 
-                    className="object-contain max-w-full max-h-24"
+                    className="object-contain max-w-full h-20 sm:h-24"
                     crossOrigin="anonymous"
                   />
               </div>
               
               <div>
-                <h2 className="text-2xl font-bold text-gray-800 tracking-tight">{data.name}</h2>
-                <p className="text-[#002f6c] font-medium uppercase text-sm tracking-widest mt-1">{data.title}</p>
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight leading-tight">{data.name}</h2>
+                <p className="text-[#002f6c] font-medium uppercase text-xs sm:text-sm tracking-widest mt-1">{data.title}</p>
               </div>
             </div>
 
-            <div className="absolute bottom-4 right-4 text-gray-400 animate-pulse">
-              <ArrowRightLeft size={20} />
+            <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 text-gray-400 animate-pulse">
+              <ArrowRightLeft size={16} className="sm:w-5 sm:h-5" />
             </div>
-            <div className="absolute bottom-0 right-0 w-16 h-16 bg-blue-50 rounded-tl-full -z-10"></div>
+            <div className="absolute bottom-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-blue-50 rounded-tl-full -z-10"></div>
           </div>
 
           {/* Back Face */}
           <div 
             ref={backCardRef}
-            className="absolute w-full h-full backface-hidden rotate-y-180 rounded-xl overflow-hidden text-white p-5 flex flex-col shadow-xl"
+            className="absolute w-full h-full backface-hidden rotate-y-180 rounded-xl overflow-hidden text-white p-4 sm:p-5 flex flex-col shadow-xl"
             style={{ backgroundColor: data.backBgColor || '#546E7A' }}
           >
             {/* Pattern Overlay */}
             <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white to-transparent pointer-events-none"></div>
 
             {/* Header Row */}
-            <div className="flex justify-between items-start z-10 mb-3 shrink-0">
+            <div className="flex justify-between items-start z-10 mb-2 sm:mb-3 shrink-0">
               <div className="flex items-center gap-2">
                 <div>
-                  <h3 className="text-base font-bold">{data.company}</h3>
+                  <h3 className="text-sm sm:text-base font-bold">{data.company}</h3>
                   <div className="flex items-center gap-1 mt-1">
                     <button 
                       onClick={toggleViewMode}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-[10px] font-medium text-blue-50 export-hide"
+                      className="flex items-center gap-1.5 px-2 py-0.5 sm:py-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-[9px] sm:text-[10px] font-medium text-blue-50 export-hide"
                     >
                       {isCompact ? <Maximize2 size={10} /> : <Minimize2 size={10} />}
                       <span>{isCompact ? "Detail" : "Ringkas"}</span>
@@ -443,61 +459,62 @@ END:VCARD`;
                     {data.teamMembers && data.teamMembers.length > 0 && (
                       <button 
                         onClick={(e) => { e.stopPropagation(); setShowTeamModal(true); }}
-                        className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-100 border border-yellow-500/30 transition-colors text-[10px] font-medium export-hide"
+                        className="flex items-center gap-1.5 px-2 py-0.5 sm:py-1 rounded-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-100 border border-yellow-500/30 transition-colors text-[9px] sm:text-[10px] font-medium export-hide"
                       >
                         <Users size={10} />
-                        <span>Tim & Kontak</span>
+                        <span className="hidden sm:inline">Tim & Kontak</span>
+                        <span className="inline sm:hidden">Tim</span>
                       </button>
                     )}
                   </div>
                 </div>
               </div>
-              <div className="bg-white/10 p-1.5 rounded-lg backdrop-blur-sm shrink-0">
-                  <QrCode size={24} className="text-white" />
+              <div className="bg-white/10 p-1 sm:p-1.5 rounded-lg backdrop-blur-sm shrink-0">
+                  <QrCode size={20} className="text-white sm:w-6 sm:h-6" />
               </div>
             </div>
 
             {/* Contact Details Grid */}
-            <div className={`flex flex-col z-10 text-xs ${isCompact ? 'gap-2 justify-center flex-grow' : 'gap-1.5'}`}>
+            <div className={`flex flex-col z-10 text-[10px] sm:text-xs ${isCompact ? 'gap-1.5 sm:gap-2 justify-center flex-grow' : 'gap-1 sm:gap-1.5'}`}>
               <div className={contactItemClass}>
-                <div className={iconContainerClass}><Phone size={12} /></div>
+                <div className={iconContainerClass}><Phone size={12} className="sm:w-3.5 sm:h-3.5" /></div>
                 <span className={textClass}>{data.phone}</span>
               </div>
               
               <div className={contactItemClass}>
-                <div className={iconContainerClass}><Mail size={12} /></div>
+                <div className={iconContainerClass}><Mail size={12} className="sm:w-3.5 sm:h-3.5" /></div>
                 <span className={textClass}>{data.email}</span>
               </div>
 
               {!isCompact && data.generalEmail && (
                 <div className={contactItemClass}>
-                  <div className={iconContainerClass}><Inbox size={12} /></div>
+                  <div className={iconContainerClass}><Inbox size={12} className="sm:w-3.5 sm:h-3.5" /></div>
                   <span className={`${textClass} opacity-90`}>{data.generalEmail}</span>
                 </div>
               )}
 
               <div className={contactItemClass}>
-                <div className={iconContainerClass}><Globe size={12} /></div>
+                <div className={iconContainerClass}><Globe size={12} className="sm:w-3.5 sm:h-3.5" /></div>
                 <span className={textClass}>{data.website}</span>
               </div>
 
               {!isCompact && data.linkedin && (
                 <div className={contactItemClass}>
-                  <div className={iconContainerClass}><Linkedin size={12} /></div>
+                  <div className={iconContainerClass}><Linkedin size={12} className="sm:w-3.5 sm:h-3.5" /></div>
                   <span className={textClass}>{data.linkedin}</span>
                 </div>
               )}
 
               {!isCompact && data.github && (
                 <div className={contactItemClass}>
-                  <div className={iconContainerClass}><Github size={12} /></div>
+                  <div className={iconContainerClass}><Github size={12} className="sm:w-3.5 sm:h-3.5" /></div>
                   <span className={textClass}>{data.github}</span>
                 </div>
               )}
 
               <div className="flex items-start space-x-2 group">
-                <div className={`${iconContainerClass} mt-0.5`}><MapPin size={12} /></div>
-                <span className="font-light leading-snug text-[10px] opacity-90 line-clamp-2">
+                <div className={`${iconContainerClass} mt-0.5`}><MapPin size={12} className="sm:w-3.5 sm:h-3.5" /></div>
+                <span className="font-light leading-snug text-[9px] sm:text-[10px] opacity-90 line-clamp-2">
                   {data.address}
                 </span>
               </div>
@@ -505,13 +522,13 @@ END:VCARD`;
 
             {/* AI Bio Section */}
             {!isCompact && (
-              <div className="mt-auto pt-2 border-t border-white/20 z-10">
+              <div className="mt-auto pt-1.5 sm:pt-2 border-t border-white/20 z-10">
                  {!bio ? (
                     <div className="relative group w-fit export-hide">
                         <button 
                           onClick={handleGenerateBio}
                           disabled={isLoadingBio}
-                          className="flex items-center space-x-2 text-[10px] bg-white/10 hover:bg-white/20 px-2 py-1 rounded-full transition-all w-fit"
+                          className="flex items-center space-x-2 text-[9px] sm:text-[10px] bg-white/10 hover:bg-white/20 px-2 py-1 rounded-full transition-all w-fit"
                         >
                           <Sparkles size={10} className={isLoadingBio ? "animate-spin" : ""} />
                           <span>{isLoadingBio ? "Sedang membuat profil..." : "Buat Profil Singkat (AI)"}</span>
@@ -523,7 +540,7 @@ END:VCARD`;
                         </div>
                     </div>
                  ) : (
-                   <p className="text-[9px] italic opacity-90 leading-relaxed bg-black/20 p-1.5 rounded-lg border-l-2 border-blue-300">
+                   <p className="text-[8px] sm:text-[9px] italic opacity-90 leading-relaxed bg-black/20 p-1.5 rounded-lg border-l-2 border-blue-300">
                      "{bio}"
                    </p>
                  )}
@@ -534,35 +551,35 @@ END:VCARD`;
       </div>
 
       {/* Control Buttons */}
-      <div className="mt-8 flex gap-4">
+      <div className="mt-6 sm:mt-8 flex gap-3 sm:gap-4">
         <button 
-          onClick={() => setShowShareModal(true)}
-          className="flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-lg hover:bg-gray-800 transition-transform hover:scale-105 active:scale-95"
+          onClick={() => { playSound(clickSound); setShowShareModal(true); }}
+          className="flex items-center gap-2 bg-gray-900 text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-full shadow-lg hover:bg-gray-800 transition-transform hover:scale-105 active:scale-95"
         >
-          <Share2 size={18} />
-          <span className="text-sm font-medium">Bagikan Kartu</span>
+          <Share2 size={16} className="sm:w-[18px] sm:h-[18px]" />
+          <span className="text-xs sm:text-sm font-medium">Bagikan</span>
         </button>
         <button 
-          onClick={() => setIsFlipped(!isFlipped)}
-          className="flex items-center gap-2 bg-white text-gray-700 px-6 py-3 rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 transition-transform hover:scale-105 active:scale-95"
+          onClick={handleFlip}
+          className="flex items-center gap-2 bg-white text-gray-700 px-5 sm:px-6 py-2.5 sm:py-3 rounded-full shadow-lg border border-gray-200 hover:bg-gray-50 transition-transform hover:scale-105 active:scale-95"
         >
-          <ArrowRightLeft size={18} />
-          <span className="text-sm font-medium">Balik Kartu</span>
+          <ArrowRightLeft size={16} className="sm:w-[18px] sm:h-[18px]" />
+          <span className="text-xs sm:text-sm font-medium">Balik</span>
         </button>
       </div>
 
       {/* Share Modal */}
       {showShareModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowShareModal(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[85vh] sm:max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
-              <h3 className="font-semibold text-gray-800">Bagikan Kartu Bisnis</h3>
+              <h3 className="font-semibold text-gray-800 text-sm sm:text-base">Bagikan Kartu Bisnis</h3>
               <button onClick={() => setShowShareModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
                 <X size={20} />
               </button>
             </div>
             
-            <div className="p-6 space-y-4 overflow-y-auto">
+            <div className="p-4 sm:p-6 space-y-4 overflow-y-auto">
               
               {/* Copy Link Section */}
               <div>
@@ -571,10 +588,10 @@ END:VCARD`;
                   {/* WhatsApp Button - Prominent */}
                   <button 
                     onClick={handleWhatsAppShare}
-                    className="w-full flex items-center justify-center gap-2 p-3.5 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95"
+                    className="w-full flex items-center justify-center gap-2 p-3 sm:p-3.5 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95"
                   >
                     <MessageCircle size={20} fill="currentColor" className="text-white" />
-                    <span className="font-semibold">Bagikan via WhatsApp</span>
+                    <span className="font-semibold text-sm">Bagikan via WhatsApp</span>
                   </button>
 
                   <button 
@@ -605,22 +622,22 @@ END:VCARD`;
                 <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Download Format</span>
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={handleDownloadVCard} className={downloadBtnClass}>
-                    <Download size={24} className="text-gray-600" />
+                    <Download size={20} className="text-gray-600 sm:w-6 sm:h-6" />
                     <span className={downloadTextClass}>vCard (.vcf)</span>
                   </button>
 
                   <button onClick={handleDownloadJPEG} className={downloadBtnClass}>
-                    <ImageIcon size={24} className="text-purple-600" />
+                    <ImageIcon size={20} className="text-purple-600 sm:w-6 sm:h-6" />
                     <span className={downloadTextClass}>Gambar (JPEG)</span>
                   </button>
 
                   <button onClick={handleDownloadPDF} className={downloadBtnClass}>
-                    <FileText size={24} className="text-red-600" />
+                    <FileText size={20} className="text-red-600 sm:w-6 sm:h-6" />
                     <span className={downloadTextClass}>Dokumen (PDF)</span>
                   </button>
 
                   <button onClick={handleDownloadHTML} className={downloadBtnClass}>
-                    <FileCode size={24} className="text-orange-600" />
+                    <FileCode size={20} className="text-orange-600 sm:w-6 sm:h-6" />
                     <span className={downloadTextClass}>Web File (HTML)</span>
                   </button>
                 </div>
@@ -640,7 +657,7 @@ END:VCARD`;
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowTeamModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
-              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+              <h3 className="font-semibold text-gray-800 flex items-center gap-2 text-sm sm:text-base">
                 <Users size={18} className="text-blue-600" />
                 Kontak Penting & Tim
               </h3>

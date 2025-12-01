@@ -123,36 +123,38 @@ export const App: React.FC = () => {
   const sectionHeaderClass = "text-sm font-semibold text-gray-500 uppercase tracking-wider";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center py-8 sm:py-12 px-4 sm:px-6 lg:px-8 relative overflow-x-hidden">
       
-      {/* Action Buttons Top Right */}
-      <div className="absolute top-4 right-4 flex gap-3 z-40">
+      {/* Action Buttons Top Right - Adjusted for better mobile touch targets */}
+      <div className="absolute top-4 right-4 flex gap-2 sm:gap-3 z-40">
         <button 
             onClick={() => setShowScanner(true)}
-            className="bg-white/80 backdrop-blur-sm p-3 rounded-full shadow-md hover:bg-white transition-all text-gray-600 hover:text-blue-600"
+            className="bg-white/80 backdrop-blur-sm p-2.5 sm:p-3 rounded-full shadow-md hover:bg-white transition-all text-gray-600 hover:text-blue-600 active:scale-95"
             title="Scan QR Code"
         >
-            <ScanLine size={24} />
+            <ScanLine size={20} className="sm:w-6 sm:h-6" />
         </button>
         <button 
             onClick={() => setIsEditing(true)}
-            className="bg-white/80 backdrop-blur-sm p-3 rounded-full shadow-md hover:bg-white transition-all text-gray-600 hover:text-blue-600"
+            className="bg-white/80 backdrop-blur-sm p-2.5 sm:p-3 rounded-full shadow-md hover:bg-white transition-all text-gray-600 hover:text-blue-600 active:scale-95"
             title="Edit Kartu"
         >
-            <Settings size={24} />
+            <Settings size={20} className="sm:w-6 sm:h-6" />
         </button>
       </div>
 
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Kartu Bisnis Digital</h1>
-        <p className="text-gray-600 max-w-md mx-auto">
+      <div className="text-center mb-6 sm:mb-8 mt-4 sm:mt-0 px-2">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Kartu Bisnis Digital</h1>
+        <p className="text-sm sm:text-base text-gray-600 max-w-md mx-auto leading-relaxed">
           Sentuh kartu untuk melihat detail kontak {cardData.company}.
         </p>
       </div>
 
-      <DigitalCard data={cardData} />
+      <div className="w-full max-w-md">
+        <DigitalCard data={cardData} />
+      </div>
 
-      <div className="mt-12 text-center text-gray-400 text-sm">
+      <div className="mt-8 sm:mt-12 text-center text-gray-400 text-xs sm:text-sm">
         <p>&copy; {new Date().getFullYear()} {cardData.company}.</p>
         <p className="mt-1">Powered by React & Gemini AI</p>
       </div>

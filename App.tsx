@@ -17,7 +17,12 @@ const initialCardData: CardData = {
   address: "Cyber 2 Tower, Jl. H.R. Rasuna Said Blok X-5, Jakarta Selatan 12950",
   logoUrl: "https://files.catbox.moe/kxl80z.png",
   frontBgColor: "#ffffff",
-  backBgColor: "#546E7A"
+  backBgColor: "#546E7A",
+  teamMembers: [
+    { name: "Layanan Pelanggan", role: "Support 24/7", phone: "+6281100001", whatsapp: "+6281100001" },
+    { name: "Tim Sales", role: "Pertanyaan Bisnis", phone: "+6281100002", whatsapp: "+6281100002" },
+    { name: "IT Support", role: "Bantuan Teknis", phone: "+6281100003" }
+  ]
 };
 
 export const App: React.FC = () => {

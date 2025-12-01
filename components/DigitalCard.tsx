@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { CardData } from '../types';
-import { Phone, Mail, Globe, MapPin, Share2, Sparkles, QrCode, ArrowRightLeft, Linkedin, Github, Inbox, X, Download, Link as LinkIcon, Check, Maximize2, Minimize2, Twitter, MessageCircle, FileText, Image as ImageIcon, FileCode } from 'lucide-react';
+import { Phone, Mail, Globe, MapPin, Share2, Sparkles, QrCode, ArrowRightLeft, Linkedin, Github, Inbox, X, Download, Link as LinkIcon, Check, Maximize2, Minimize2, Twitter, MessageCircle, FileText, Image as ImageIcon, FileCode, Users, ExternalLink } from 'lucide-react';
 import { generateProfessionalBio } from '../services/geminiService';
 
 // Declare global libraries loaded via CDN
@@ -19,8 +19,9 @@ export const DigitalCard: React.FC<DigitalCardProps> = ({ data }) => {
   // View Mode State: 'detail' (false) or 'compact' (true)
   const [isCompact, setIsCompact] = useState(false);
   
-  // Share Modal State
+  // Modals
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showTeamModal, setShowTeamModal] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
   // Refs for capturing card images
@@ -45,17 +46,6 @@ export const DigitalCard: React.FC<DigitalCardProps> = ({ data }) => {
   };
 
   // --- Capture Helper ---
-  const captureCardFace = async (): Promise<HTMLCanvasElement | null> => {
-    // We capture specific refs regardless of current flip state to ensure we get what we need
-    // However, if the element is hidden via 'backface-hidden', html2canvas might have issues.
-    // Ideally, we clone the element and render it off-screen.
-    
-    // Determine which element to capture based on what triggered this. 
-    // But for "JPEG" download, we want BOTH.
-    // Let's make a generic capturer that captures a specific node.
-    return null; // Placeholder, logic moved inside specific handlers or updated below
-  };
-
   const captureElement = async (element: HTMLElement): Promise<HTMLCanvasElement | null> => {
       if (!element) return null;
 
@@ -360,13 +350,23 @@ END:VCARD`;
   };
 
   const handleWhatsAppShare = () => {
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`;
+    // Richer message format for better engagement
+    const message = `*Kartu Nama Digital*\n\nNama: ${data.name}\nPosisi: ${data.title}\nPerusahaan: ${data.company}\n\nLihat profil lengkap dan simpan kontak saya di sini:\n${shareUrl}`;
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const handleTwitterShare = () => {
     const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleCall = (phone: string) => {
+    window.location.href = `tel:${phone}`;
+  };
+
+  const handleWhatsAppContact = (phone: string) => {
+    window.open(`https://api.whatsapp.com/send?phone=${phone.replace(/\+/g, '')}`, '_blank');
   };
 
   // Reusable classes
@@ -379,139 +379,157 @@ END:VCARD`;
   return (
     <div className="flex flex-col items-center justify-center w-full max-w-md mx-auto p-4 perspective-1000">
       
-      {/* Card Container */}
-      <div 
-        className={`relative w-full aspect-[1.75/1] transition-all duration-700 transform-style-3d cursor-pointer shadow-2xl rounded-xl ${isFlipped ? 'rotate-y-180' : ''}`}
-        onClick={handleFlip}
-      >
-        {/* Front Face */}
+      {/* Hover Wrapper */}
+      <div className="w-full aspect-[1.75/1] transition-transform duration-300 hover:scale-[1.02] transform-style-3d">
+        {/* Card Container */}
         <div 
-          ref={frontCardRef}
-          className="absolute w-full h-full backface-hidden rounded-xl overflow-hidden border border-gray-200 flex flex-col items-center justify-center p-6 text-center z-10"
-          style={{ backgroundColor: data.frontBgColor || '#ffffff' }}
+          className={`relative w-full h-full transition-all duration-700 transform-style-3d cursor-pointer shadow-2xl rounded-xl ${isFlipped ? 'rotate-y-180' : ''}`}
+          onClick={handleFlip}
         >
-          <div className="absolute top-0 left-0 w-full h-2 bg-[#002f6c]"></div>
-          
-          <div className="flex-grow flex flex-col items-center justify-center space-y-4">
-            <div className="w-48 h-auto mb-2 relative flex items-center justify-center">
-                <img 
-                  src={data.logoUrl} 
-                  alt="Company Logo" 
-                  className="object-contain max-w-full max-h-24"
-                  crossOrigin="anonymous"
-                />
-            </div>
+          {/* Front Face */}
+          <div 
+            ref={frontCardRef}
+            className="absolute w-full h-full backface-hidden rounded-xl overflow-hidden border border-gray-200 flex flex-col items-center justify-center p-6 text-center z-10"
+            style={{ backgroundColor: data.frontBgColor || '#ffffff' }}
+          >
+            <div className="absolute top-0 left-0 w-full h-2 bg-[#002f6c]"></div>
             
-            <div>
-              <h2 className="text-2xl font-bold text-gray-800 tracking-tight">{data.name}</h2>
-              <p className="text-[#002f6c] font-medium uppercase text-sm tracking-widest mt-1">{data.title}</p>
-            </div>
-          </div>
-
-          <div className="absolute bottom-4 right-4 text-gray-400 animate-pulse">
-            <ArrowRightLeft size={20} />
-          </div>
-          <div className="absolute bottom-0 right-0 w-16 h-16 bg-blue-50 rounded-tl-full -z-10"></div>
-        </div>
-
-        {/* Back Face */}
-        <div 
-          ref={backCardRef}
-          className="absolute w-full h-full backface-hidden rotate-y-180 rounded-xl overflow-hidden text-white p-5 flex flex-col shadow-xl"
-          style={{ backgroundColor: data.backBgColor || '#546E7A' }}
-        >
-          {/* Pattern Overlay */}
-          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white to-transparent pointer-events-none"></div>
-
-          {/* Header Row */}
-          <div className="flex justify-between items-start z-10 mb-3 shrink-0">
-            <div>
-              <h3 className="text-base font-bold">{data.company}</h3>
-              <button 
-                onClick={toggleViewMode}
-                className="mt-1 flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-[10px] font-medium text-blue-50 export-hide"
-              >
-                {isCompact ? <Maximize2 size={10} /> : <Minimize2 size={10} />}
-                <span>{isCompact ? "Mode Detail" : "Mode Ringkas"}</span>
-              </button>
-            </div>
-            <div className="bg-white/10 p-1.5 rounded-lg backdrop-blur-sm shrink-0">
-                <QrCode size={24} className="text-white" />
-            </div>
-          </div>
-
-          {/* Contact Details Grid */}
-          <div className={`flex flex-col z-10 text-xs ${isCompact ? 'gap-2 justify-center flex-grow' : 'gap-1.5'}`}>
-            <div className={contactItemClass}>
-              <div className={iconContainerClass}><Phone size={12} /></div>
-              <span className={textClass}>{data.phone}</span>
-            </div>
-            
-            <div className={contactItemClass}>
-              <div className={iconContainerClass}><Mail size={12} /></div>
-              <span className={textClass}>{data.email}</span>
-            </div>
-
-            {!isCompact && data.generalEmail && (
-              <div className={contactItemClass}>
-                <div className={iconContainerClass}><Inbox size={12} /></div>
-                <span className={`${textClass} opacity-90`}>{data.generalEmail}</span>
+            <div className="flex-grow flex flex-col items-center justify-center space-y-4">
+              <div className="w-48 h-auto mb-2 relative flex items-center justify-center">
+                  <img 
+                    src={data.logoUrl} 
+                    alt="Company Logo" 
+                    className="object-contain max-w-full max-h-24"
+                    crossOrigin="anonymous"
+                  />
               </div>
-            )}
-
-            <div className={contactItemClass}>
-              <div className={iconContainerClass}><Globe size={12} /></div>
-              <span className={textClass}>{data.website}</span>
+              
+              <div>
+                <h2 className="text-2xl font-bold text-gray-800 tracking-tight">{data.name}</h2>
+                <p className="text-[#002f6c] font-medium uppercase text-sm tracking-widest mt-1">{data.title}</p>
+              </div>
             </div>
 
-            {!isCompact && data.linkedin && (
-              <div className={contactItemClass}>
-                <div className={iconContainerClass}><Linkedin size={12} /></div>
-                <span className={textClass}>{data.linkedin}</span>
-              </div>
-            )}
-
-            {!isCompact && data.github && (
-              <div className={contactItemClass}>
-                <div className={iconContainerClass}><Github size={12} /></div>
-                <span className={textClass}>{data.github}</span>
-              </div>
-            )}
-
-            <div className="flex items-start space-x-2 group">
-              <div className={`${iconContainerClass} mt-0.5`}><MapPin size={12} /></div>
-              <span className="font-light leading-snug text-[10px] opacity-90 line-clamp-2">
-                {data.address}
-              </span>
+            <div className="absolute bottom-4 right-4 text-gray-400 animate-pulse">
+              <ArrowRightLeft size={20} />
             </div>
+            <div className="absolute bottom-0 right-0 w-16 h-16 bg-blue-50 rounded-tl-full -z-10"></div>
           </div>
 
-          {/* AI Bio Section */}
-          {!isCompact && (
-            <div className="mt-auto pt-2 border-t border-white/20 z-10">
-               {!bio ? (
-                  <div className="relative group w-fit export-hide">
+          {/* Back Face */}
+          <div 
+            ref={backCardRef}
+            className="absolute w-full h-full backface-hidden rotate-y-180 rounded-xl overflow-hidden text-white p-5 flex flex-col shadow-xl"
+            style={{ backgroundColor: data.backBgColor || '#546E7A' }}
+          >
+            {/* Pattern Overlay */}
+            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-white to-transparent pointer-events-none"></div>
+
+            {/* Header Row */}
+            <div className="flex justify-between items-start z-10 mb-3 shrink-0">
+              <div className="flex items-center gap-2">
+                <div>
+                  <h3 className="text-base font-bold">{data.company}</h3>
+                  <div className="flex items-center gap-1 mt-1">
+                    <button 
+                      onClick={toggleViewMode}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors text-[10px] font-medium text-blue-50 export-hide"
+                    >
+                      {isCompact ? <Maximize2 size={10} /> : <Minimize2 size={10} />}
+                      <span>{isCompact ? "Detail" : "Ringkas"}</span>
+                    </button>
+                    
+                    {/* Team Badge Button */}
+                    {data.teamMembers && data.teamMembers.length > 0 && (
                       <button 
-                        onClick={handleGenerateBio}
-                        disabled={isLoadingBio}
-                        className="flex items-center space-x-2 text-[10px] bg-white/10 hover:bg-white/20 px-2 py-1 rounded-full transition-all w-fit"
+                        onClick={(e) => { e.stopPropagation(); setShowTeamModal(true); }}
+                        className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-100 border border-yellow-500/30 transition-colors text-[10px] font-medium export-hide"
                       >
-                        <Sparkles size={10} className={isLoadingBio ? "animate-spin" : ""} />
-                        <span>{isLoadingBio ? "Sedang membuat profil..." : "Buat Profil Singkat (AI)"}</span>
+                        <Users size={10} />
+                        <span>Tim & Kontak</span>
                       </button>
-                      
-                      <div className="absolute bottom-full left-0 mb-2 w-max max-w-[200px] p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none text-left border border-white/10">
-                          Klik untuk membuat deskripsi profesional otomatis menggunakan AI.
-                          <div className="absolute top-full left-4 -mt-[1px] border-4 border-transparent border-t-gray-900"></div>
-                      </div>
+                    )}
                   </div>
-               ) : (
-                 <p className="text-[9px] italic opacity-90 leading-relaxed bg-black/20 p-1.5 rounded-lg border-l-2 border-blue-300">
-                   "{bio}"
-                 </p>
-               )}
+                </div>
+              </div>
+              <div className="bg-white/10 p-1.5 rounded-lg backdrop-blur-sm shrink-0">
+                  <QrCode size={24} className="text-white" />
+              </div>
             </div>
-          )}
+
+            {/* Contact Details Grid */}
+            <div className={`flex flex-col z-10 text-xs ${isCompact ? 'gap-2 justify-center flex-grow' : 'gap-1.5'}`}>
+              <div className={contactItemClass}>
+                <div className={iconContainerClass}><Phone size={12} /></div>
+                <span className={textClass}>{data.phone}</span>
+              </div>
+              
+              <div className={contactItemClass}>
+                <div className={iconContainerClass}><Mail size={12} /></div>
+                <span className={textClass}>{data.email}</span>
+              </div>
+
+              {!isCompact && data.generalEmail && (
+                <div className={contactItemClass}>
+                  <div className={iconContainerClass}><Inbox size={12} /></div>
+                  <span className={`${textClass} opacity-90`}>{data.generalEmail}</span>
+                </div>
+              )}
+
+              <div className={contactItemClass}>
+                <div className={iconContainerClass}><Globe size={12} /></div>
+                <span className={textClass}>{data.website}</span>
+              </div>
+
+              {!isCompact && data.linkedin && (
+                <div className={contactItemClass}>
+                  <div className={iconContainerClass}><Linkedin size={12} /></div>
+                  <span className={textClass}>{data.linkedin}</span>
+                </div>
+              )}
+
+              {!isCompact && data.github && (
+                <div className={contactItemClass}>
+                  <div className={iconContainerClass}><Github size={12} /></div>
+                  <span className={textClass}>{data.github}</span>
+                </div>
+              )}
+
+              <div className="flex items-start space-x-2 group">
+                <div className={`${iconContainerClass} mt-0.5`}><MapPin size={12} /></div>
+                <span className="font-light leading-snug text-[10px] opacity-90 line-clamp-2">
+                  {data.address}
+                </span>
+              </div>
+            </div>
+
+            {/* AI Bio Section */}
+            {!isCompact && (
+              <div className="mt-auto pt-2 border-t border-white/20 z-10">
+                 {!bio ? (
+                    <div className="relative group w-fit export-hide">
+                        <button 
+                          onClick={handleGenerateBio}
+                          disabled={isLoadingBio}
+                          className="flex items-center space-x-2 text-[10px] bg-white/10 hover:bg-white/20 px-2 py-1 rounded-full transition-all w-fit"
+                        >
+                          <Sparkles size={10} className={isLoadingBio ? "animate-spin" : ""} />
+                          <span>{isLoadingBio ? "Sedang membuat profil..." : "Buat Profil Singkat (AI)"}</span>
+                        </button>
+                        
+                        <div className="absolute bottom-full left-0 mb-2 w-max max-w-[200px] p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none text-left border border-white/10">
+                            Klik untuk membuat deskripsi profesional otomatis menggunakan AI.
+                            <div className="absolute top-full left-4 -mt-[1px] border-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                    </div>
+                 ) : (
+                   <p className="text-[9px] italic opacity-90 leading-relaxed bg-black/20 p-1.5 rounded-lg border-l-2 border-blue-300">
+                     "{bio}"
+                   </p>
+                 )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -550,6 +568,15 @@ END:VCARD`;
               <div>
                 <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 block">Link & Social</span>
                 <div className="space-y-3">
+                  {/* WhatsApp Button - Prominent */}
+                  <button 
+                    onClick={handleWhatsAppShare}
+                    className="w-full flex items-center justify-center gap-2 p-3.5 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl transition-all shadow-md hover:shadow-lg active:scale-95"
+                  >
+                    <MessageCircle size={20} fill="currentColor" className="text-white" />
+                    <span className="font-semibold">Bagikan via WhatsApp</span>
+                  </button>
+
                   <button 
                     onClick={handleShareLink}
                     className="w-full flex items-center justify-between p-3 bg-white border border-gray-200 rounded-xl hover:border-blue-300 hover:bg-blue-50 transition-all group"
@@ -562,22 +589,14 @@ END:VCARD`;
                     </div>
                   </button>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <button 
-                      onClick={handleWhatsAppShare}
-                      className="flex items-center justify-center gap-2 p-3 bg-green-50 hover:bg-green-100 border border-green-200 rounded-xl transition-all"
-                    >
-                      <MessageCircle size={18} className="text-green-600" />
-                      <span className="text-sm font-medium text-green-800">WhatsApp</span>
-                    </button>
-                    <button 
+                  {/* Other Socials */}
+                  <button 
                       onClick={handleTwitterShare}
-                      className="flex items-center justify-center gap-2 p-3 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-xl transition-all"
+                      className="w-full flex items-center justify-center gap-2 p-3 bg-sky-50 hover:bg-sky-100 border border-sky-200 rounded-xl transition-all text-sky-700"
                     >
-                      <Twitter size={18} className="text-sky-600" />
-                      <span className="text-sm font-medium text-sky-800">Twitter</span>
-                    </button>
-                  </div>
+                      <Twitter size={18} />
+                      <span className="text-sm font-medium">Twitter / X</span>
+                  </button>
                 </div>
               </div>
 
@@ -611,6 +630,66 @@ END:VCARD`;
 
             <div className="p-4 bg-gray-50 text-center text-xs text-gray-400 border-t border-gray-100 shrink-0">
               PT Seraphim Digital Technology
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Team / Key Contacts Modal */}
+      {showTeamModal && data.teamMembers && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowTeamModal(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden flex flex-col max-h-[80vh]" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                <Users size={18} className="text-blue-600" />
+                Kontak Penting & Tim
+              </h3>
+              <button onClick={() => setShowTeamModal(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-2 overflow-y-auto">
+              {data.teamMembers.map((member, index) => (
+                <div key={index} className="p-4 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
+                   <div className="flex justify-between items-start mb-2">
+                     <div>
+                       <p className="font-bold text-gray-800 text-sm">{member.name}</p>
+                       <p className="text-xs text-blue-600 font-medium uppercase tracking-wide">{member.role}</p>
+                     </div>
+                   </div>
+                   
+                   <div className="flex gap-2 mt-2">
+                      <button 
+                        onClick={() => handleCall(member.phone)}
+                        className="flex-1 flex items-center justify-center gap-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 rounded-lg text-xs font-medium transition-colors"
+                      >
+                        <Phone size={14} />
+                        Telepon
+                      </button>
+                      
+                      {member.whatsapp && (
+                        <button 
+                          onClick={() => handleWhatsAppContact(member.whatsapp!)}
+                          className="flex-1 flex items-center justify-center gap-1.5 bg-green-50 hover:bg-green-100 text-green-700 py-2 rounded-lg text-xs font-medium transition-colors"
+                        >
+                          <MessageCircle size={14} />
+                          WhatsApp
+                        </button>
+                      )}
+                   </div>
+                </div>
+              ))}
+              
+              {data.teamMembers.length === 0 && (
+                <div className="p-8 text-center text-gray-400 text-sm">
+                  Tidak ada data kontak tim yang tersedia.
+                </div>
+              )}
+            </div>
+
+            <div className="p-3 bg-gray-50 text-center text-[10px] text-gray-400 border-t border-gray-100 shrink-0">
+               Hubungi tim kami untuk bantuan lebih lanjut.
             </div>
           </div>
         </div>

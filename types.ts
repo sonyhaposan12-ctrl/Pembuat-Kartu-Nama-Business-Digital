@@ -1,3 +1,10 @@
+export interface TeamMember {
+  name: string;
+  role: string;
+  phone: string;
+  whatsapp?: string;
+}
+
 export interface CardData {
   name: string;
   title: string;
@@ -12,6 +19,7 @@ export interface CardData {
   logoUrl: string;
   frontBgColor?: string;
   backBgColor?: string;
+  teamMembers?: TeamMember[];
 }
 
 export enum CardSide {

@@ -353,6 +353,41 @@ export const DigitalCard: React.FC<DigitalCardProps> = ({ data }) => {
         </div>
     </div>
     
+    <!-- Print View (Hidden on Screen, Visible on Print) -->
+    <div class="print-view hidden w-full">
+         <div class="text-center mb-4">
+            <h1 class="text-2xl font-bold text-gray-800">${data.name}</h1>
+            <p class="text-sm text-gray-600">${data.title} - ${data.company}</p>
+         </div>
+         
+         <div>
+            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 text-center">Tampak Depan</h3>
+            <div class="print-card flex flex-col items-center justify-center p-6 text-center" style="background-color: ${data.frontBgColor || '#ffffff'} !important; border: 1px solid #ddd;">
+                 <div style="position: absolute; top: 0; left: 0; width: 100%; height: 8px; background-color: #002f6c;"></div>
+                 <div style="margin-bottom: 10px;">
+                    <img src="${logoBase64}" alt="Logo" style="max-height: 80px; width: auto;">
+                 </div>
+                 <h2 style="font-size: 20px; font-weight: bold; color: #1f2937; margin: 0;">${data.name}</h2>
+                 <p style="color: #002f6c; font-weight: 500; text-transform: uppercase; font-size: 12px; letter-spacing: 2px; margin-top: 5px;">${data.title}</p>
+            </div>
+         </div>
+
+         <div>
+            <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider mb-2 text-center">Tampak Belakang</h3>
+            <div class="print-card p-5 flex flex-col text-white" style="background-color: ${data.backBgColor || '#546E7A'} !important;">
+                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="font-size: 14px; font-weight: bold; margin: 0;">${data.company}</h3>
+                 </div>
+                 <div style="display: flex; flex-direction: column; gap: 8px; font-size: 11px;">
+                    <div>Tel: ${data.phone}</div>
+                    <div>Email: ${data.email}</div>
+                    <div>Web: ${data.website}</div>
+                    <div>Addr: ${data.address}</div>
+                 </div>
+            </div>
+         </div>
+    </div>
+
     <div class="mt-8 text-center text-gray-400 text-xs no-print">
         <p>Klik kartu untuk membalik (Depan / Belakang)</p>
         <p class="mt-2">Generated via Seraphim Digital Card</p>
@@ -428,8 +463,8 @@ END:VCARD`;
     // Richer message format for better engagement
     const message = `*Kartu Nama Digital*\n\nNama: ${data.name}\nPosisi: ${data.title}\nPerusahaan: ${data.company}\n\nLihat profil lengkap dan simpan kontak saya di sini:\n${shareUrl}`;
     
-    // Switch to wa.me for broader compatibility (app vs web auto-detection)
-    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    // Use api.whatsapp.com/send for the Share intent. It is often more reliable for pre-filled text than wa.me on some platforms.
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
@@ -444,9 +479,14 @@ END:VCARD`;
   };
 
   const handleWhatsAppContact = (phone: string) => {
-    // Sanitize phone number: Remove all non-numeric characters to ensure API works
-    // Previous replace(/\+/g, '') was insufficient if number had spaces or dashes
-    const cleanPhone = phone.replace(/\D/g, '');
+    // 1. Remove all non-numeric chars
+    let cleanPhone = phone.replace(/\D/g, '');
+
+    // 2. Intelligence check: If it starts with '0', it's likely a local ID format. Replace with '62'.
+    if (cleanPhone.startsWith('0')) {
+      cleanPhone = '62' + cleanPhone.slice(1);
+    }
+    
     window.open(`https://wa.me/${cleanPhone}`, '_blank');
   };
 
